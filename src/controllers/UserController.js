@@ -1,6 +1,7 @@
 //controllers/UserController.js
 import { Users } from '../models/UserModel.js';
-import { upload } from '../middleware/upload.js'; // not used directly here, kept for reference
+import { hashPassword } from '../utils/password.js';
+const ALLOWED_ROLES = new Set(['user', 'admin']);
 
 export const UserController = {
     async getAll(req, res) {
@@ -14,9 +15,46 @@ export const UserController = {
         res.json(user);
     },
     async create(req, res) {
-        const { login, password_hash, full_name, email, role } = req.body;
-        if (!login || !password_hash || !full_name || !email)
-            return res.status(400).json({ error: 'Missing fields' });
+        const {
+            login,
+            password,
+            password_confirmation,
+            email,
+            full_name,
+            role = 'user',
+        } = req.body;
+
+        // валидация обязательных полей
+        if (
+            !login ||
+            !password ||
+            !password_confirmation ||
+            !email ||
+            !full_name
+        ) {
+            return res.status(400).json({
+                error: 'Missing fields: login, password, password_confirmation, email, full_name are required',
+            });
+        }
+        if (password !== password_confirmation) {
+            return res.status(400).json({ error: 'Passwords do not match' });
+        }
+        if (!ALLOWED_ROLES.has(role)) {
+            return res.status(400).json({ error: 'Invalid role' });
+        }
+
+        // проверка уникальности логина/почты
+        const existingByLogin = await Users.findByLoginOrEmail(login);
+        if (existingByLogin && existingByLogin.login === login) {
+            return res.status(409).json({ error: 'Login already taken' });
+        }
+        const existingByEmail = await Users.findByLoginOrEmail(email);
+        if (existingByEmail && existingByEmail.email === email) {
+            return res.status(409).json({ error: 'Email already taken' });
+        }
+
+        // хэш пароля и создание
+        const password_hash = await hashPassword(password);
         const user = await Users.create({
             login,
             password_hash,
@@ -24,7 +62,8 @@ export const UserController = {
             email,
             role,
         });
-        res.status(201).json(user);
+
+        return res.status(201).json(user);
     },
     async update(req, res) {
         const id = +req.params.user_id;

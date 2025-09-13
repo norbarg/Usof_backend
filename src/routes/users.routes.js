@@ -5,15 +5,15 @@ import { authRequired, requireRole } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 
 const r = Router();
-r.get('/', authRequired, requireRole('admin'), UserController.getAll); // admin only
-r.get('/:user_id', authRequired, UserController.getById);
-r.post('/', authRequired, requireRole('admin'), UserController.create); // admin creates users/admins
+r.get('/', authRequired, requireRole('admin'), UserController.getAll); // admin only corrected
+r.get('/:user_id', authRequired, UserController.getById); //corrected
+r.post('/', authRequired, requireRole('admin'), UserController.create); // admin creates users/admins corrected
 r.patch(
     '/avatar',
     authRequired,
     upload.single('avatar'),
     UserController.uploadAvatar
-);
-r.patch('/:user_id', authRequired, UserController.update);
-r.delete('/:user_id', authRequired, UserController.remove);
+); //corrected
+r.patch('/:user_id', authRequired, UserController.update); //corrected
+r.delete('/:user_id', authRequired, UserController.remove); //corrected
 export default r;

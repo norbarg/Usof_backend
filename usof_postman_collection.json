@@ -1,0 +1,714 @@
+{
+    "info": {
+        "name": "UsOf API (Local) - Users (re-runnable)",
+        "_postman_id": "8f01f404-8c8a-11ef-b6d4-0242ac120002",
+        "description": "Users endpoints with auto-generated unique login/email and auto-captured createdUserId so tests can be re-run safely.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "Get Users (admin)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/users",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["users"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Requires admin role. Put RAW JWT (without 'Bearer') into {{token}}."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Authorized or forbidden\", function () {",
+                                    "  pm.expect([200,403]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create User (admin) — unique each run",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"login\": \"u{{rand}}\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"full_name\": \"User {{rand}}\",\n  \"email\": \"u{{rand}}@example.com\",\n  \"role\": \"user\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/users",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["users"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "ADMIN ONLY. Generates unique login/email via {{rand}}. Saves created user id to {{createdUserId}}."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "// Generate fresh rand each run to avoid conflicts",
+                                    "pm.collectionVariables.set('rand', Date.now().toString());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Created / Forbidden / BadRequest / Conflict\", function () {",
+                                    "  pm.expect([201,403,400,409]).to.include(pm.response.code);",
+                                    "});",
+                                    "if (pm.response.code === 201) {",
+                                    "  var j = pm.response.json();",
+                                    "  pm.expect(j).to.have.property('id');",
+                                    "  pm.collectionVariables.set('createdUserId', j.id.toString());",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get User by ID (createdUserId)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/users/{{createdUserId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["users", "{{createdUserId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Reads the user created in the previous step ({{createdUserId}})."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"OK or Not Found\", function () {",
+                                    "  pm.expect([200,404]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update User by ID (createdUserId)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"full_name\": \"User {{rand}} Updated\" }",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/users/{{createdUserId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["users", "{{createdUserId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Updates the user created in this run."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200 or Forbidden/NotFound\", function () {",
+                                    "  pm.expect([200,403,404]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Upload Avatar (current token user)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [{ "key": "avatar", "type": "file" }]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/users/avatar",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["users", "avatar"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Uploads avatar for the CURRENT authenticated user (not for createdUserId). Choose a file for key 'avatar'."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                                    "pm.test(\"Has profile_picture\", function () {",
+                                    "  var j = pm.response.json();",
+                                    "  pm.expect(j).to.have.property('profile_picture');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete User (admin) — createdUserId",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/users/{{createdUserId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["users", "{{createdUserId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Deletes the user created in this run so tests can be re-run safely."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Deleted / Forbidden / Not Found\", function () {",
+                                    "  pm.expect([200,403,404]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Posts",
+            "item": [
+                {
+                    "name": "List Posts",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts"]
+                        },
+                        "description": "Public: returns list of posts (active by default). Captures first id to {{postId}}."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 200\", function () { pm.response.to.have.status(200); });",
+                                    "var j = [];",
+                                    "try { j = pm.response.json(); } catch (e) {}",
+                                    "pm.test(\"Array or empty array\", function () { pm.expect(Array.isArray(j)).to.be.true; });",
+                                    "if (Array.isArray(j) && j.length) {",
+                                    "  pm.collectionVariables.set('postId', String(j[0].id));",
+                                    "} else {",
+                                    "  pm.collectionVariables.unset('postId');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Post by ID (postId)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}"]
+                        },
+                        "description": "Reads post captured from list. If no posts in DB, this may 404."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if (!pm.collectionVariables.get('postId')) {",
+                                    "  console.warn('postId is empty — run \"List Posts\" first or ensure seed data exists.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"OK or Not Found\", function () {",
+                                    "  pm.expect([200,404]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Post (auth user) — unique title",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Post {{rand}}\",\n  \"content\": [\n    {\"type\":\"text\",\"text\":\"Hello from {{rand}}\"}\n  ],\n  \"status\": \"active\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/posts",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Creates a post for the current authenticated user. Saves new id into {{postId}}."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if (!pm.collectionVariables.get('rand')) {",
+                                    "  pm.collectionVariables.set('rand', Date.now().toString());",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Created / Unauthorized / Forbidden\", function () {",
+                                    "  pm.expect([201,401,403,400]).to.include(pm.response.code);",
+                                    "});",
+                                    "if (pm.response.code === 201) {",
+                                    "  var j = pm.response.json();",
+                                    "  pm.expect(j).to.have.property('id');",
+                                    "  pm.collectionVariables.set('postId', String(j.id));",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Like Post (auth user)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"type\": \"like\" }",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}/like",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}", "like"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Sets/updates reaction to 'like' for the current user on {{postId}}."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if (!pm.collectionVariables.get('postId')) {",
+                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"OK/Created/BadRequest/Unauthorized\", function () {",
+                                    "  pm.expect([200,201,400,401,403]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Post Comments (postId)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}/comments",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}", "comments"]
+                        },
+                        "description": "Gets comments for the captured postId. If none, returns empty array."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if (!pm.collectionVariables.get('postId')) {",
+                                    "  console.warn('postId is empty — run \"List Posts\" first.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 200 or 404\", function () {",
+                                    "  pm.expect([200,404]).to.include(pm.response.code);",
+                                    "});",
+                                    "if (pm.response.code === 200) {",
+                                    "  var j = pm.response.json();",
+                                    "  pm.test(\"Array\", function () { pm.expect(Array.isArray(j)).to.be.true; });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Add Comment to Post (auth user)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"content\": \"Comment from {{rand}}\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}/comments",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}", "comments"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Creates a comment under {{postId}} for the current user."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if (!pm.collectionVariables.get('postId')) {",
+                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
+                                    "}",
+                                    "if (!pm.collectionVariables.get('rand')) {",
+                                    "  pm.collectionVariables.set('rand', Date.now().toString());",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Created / Unauthorized / Forbidden / NotFound\", function () {",
+                                    "  pm.expect([201,401,403,404,400]).to.include(pm.response.code);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Post Categories (postId)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}/categories",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}", "categories"]
+                        },
+                        "description": "Returns categories bound to {{postId}}. Empty array if none."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if (!pm.collectionVariables.get('postId')) {",
+                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 200\", function () { pm.response.to.have.status(200); });",
+                                    "var j = [];",
+                                    "try { j = pm.response.json(); } catch(e) {}",
+                                    "pm.test(\"Array\", function () { pm.expect(Array.isArray(j)).to.be.true; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update Post (patch postId)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Updated Title {{rand}}\",\n  \"content\": \"Updated content at {{rand}}\"\n}",
+                            "options": {
+                                "raw": { "language": "json" }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "PATCH post by ID. Author can update title/content/categories. Admin can update status/categories."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if (!pm.collectionVariables.get('postId')) {",
+                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"OK / Forbidden / Not Found\", function () {",
+                                    "  pm.expect([200,403,404]).to.include(pm.response.code);",
+                                    "});",
+                                    "if (pm.response.code === 200) {",
+                                    "  var j = pm.response.json();",
+                                    "  pm.expect(j).to.have.property('id');",
+                                    "  pm.expect(j).to.have.property('title');",
+                                    "  pm.expect(j).to.have.property('content');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List Post Likes (postId)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}/like",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}", "like"]
+                        },
+                        "description": "Lists reactions for {{postId}} (like/dislike entries)."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if (!pm.collectionVariables.get('postId')) {",
+                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status 200\", function () { pm.response.to.have.status(200); });",
+                                    "var j = [];",
+                                    "try { j = pm.response.json(); } catch(e) {}",
+                                    "pm.test(\"Array\", function () { pm.expect(Array.isArray(j)).to.be.true; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:3000/api" },
+        { "key": "token", "value": "" },
+        { "key": "rand", "value": "1757685470990" },
+        { "key": "createdUserId", "value": "52" },
+        { "key": "postId", "value": "1" }
+    ]
+}

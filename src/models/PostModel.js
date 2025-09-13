@@ -86,12 +86,18 @@ export class PostModel extends BaseModel {
     `;
         return this.query(sql, params);
     }
+    // models/PostModel.js
     async updateById(id, data) {
         const fields = [];
         const params = { id };
         for (const [k, v] of Object.entries(data)) {
-            fields.push(`${k} = :${k}`);
-            params[k] = v;
+            if (k === 'content') {
+                fields.push(`${k} = :${k}`);
+                params[k] = JSON.stringify(v); // <-- ВАЖНО
+            } else {
+                fields.push(`${k} = :${k}`);
+                params[k] = v;
+            }
         }
         if (!fields.length) return this.findById(id);
         await this.query(
@@ -100,6 +106,7 @@ export class PostModel extends BaseModel {
         );
         return this.findById(id);
     }
+
     async deleteById(id) {
         await this.query(`DELETE FROM posts WHERE id = :id`, { id });
         return true;
