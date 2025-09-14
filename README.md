@@ -403,13 +403,216 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     {"message":"Like removed"}
     ```
 
-## Notes
+**Categories module:**
 
--   Admin can toggle post/comment status and reassign categories, but **cannot edit post content**.
--   Ordinary users see only **active** posts from others; they can also see their own inactive posts.
--   One like/dislike per user per target (post or comment).
--   Ratings of users are recalculated from likes on their posts and comments.
--   File uploads are stored under `/uploads` and served statically at `/uploads/*`.
+-   `GET /api/categories` - command:
+
+    ```
+    curl -X GET http://localhost:3000/api/categories
+    ```
+
+    answer:
+
+    ```
+    [{"id":5,"title":"Algorithms","description":"CS fundamentals"}...]
+    ```
+
+-   `POST - /api/categories` - command:
+
+    ```
+    curl -X POST http://localhost:3000/api/categories ^
+    -H "Authorization: %TOKEN%" ^
+    -H "Content-Type: application/json" ^
+    -d "{\"title\":\"Tech\",\"description\":\"All about IT and technologies\"}"
+    ```
+
+    answer:
+
+    ```
+    {"id":31,"title":"Tech","description":"All about IT and technologies"}
+    ```
+
+-   `PATCH - /api/categories/:category_id` - command:
+
+    ```
+    curl -X PATCH http://localhost:3000/api/categories/4 ^
+    -H "Authorization: %TOKEN%" ^
+    -H "Content-Type: application/json" ^
+    -d "{\"description\":\"Technology and innovations\"}"
+    ```
+
+    answer:
+
+    ```
+    {"id":4,"title":"pidors","description":"Technology and innovations"}
+    ```
+
+-   `DELETE - /api/categories/:category_id` - command:
+
+    ```
+    curl -X DELETE http://localhost:3000/api/categories/4 ^
+    -H "Authorization: %TOKEN%"
+    ```
+
+    answer:
+
+    ```
+    {"message":"Category deleted"}
+    ```
+
+-   `GET - /api/categories/:category_id`- command:
+
+    ```
+    curl -X GET http://localhost:3000/api/categories/5
+    ```
+
+    answer:
+
+    ```
+    {"id":5,"title":"Algorithms","description":"CS fundamentals"}
+    ```
+
+-   `GET - /api/categories/:category_id/posts` - command:
+
+    ```
+    curl -X GET http://localhost:3000/api/categories/5/posts
+
+    ```
+
+    answer:
+
+    ```
+    [{"id":5,"author_id":2,"title":"Binary search edge cases","content":[{"type":"text","value":"Confused about indices"}],"publish_date":"2025-09-08T19:10:01.000Z","status":"active","updated_at":"2025-09-08T19:10:01.000Z"}]
+    ```
+
+**Comments module:**
+
+-   `GET - /api/comments/:comment_id` - command:
+
+    ```
+    curl -X GET http://localhost:3000/api/comments/4
+    ```
+
+    answer:
+
+    ```
+    {"id":4,"post_id":3,"author_id":5,"content":"Check nodebestpractices repo.","publish_date":"2025-09-08T19:10:01.000Z","status":"active"}
+    ```
+
+-   `PATCH - /api/comments/:comment_id`- command:
+
+    ```
+    curl -X PATCH http://localhost:3000/api/comments/5 ^
+    -H "Authorization: %TOKEN%" ^
+    -H "Content-Type: application/json" ^
+    -d "{\"content\":\"update text\"}"
+    ```
+
+    answer:
+
+    ```
+    {"id":5,"post_id":5,"author_id":59,"content":"hui v popu","publish_date":"2025-09-14T15:14:00.000Z","status":"active"}
+    ```
+
+-   `DELETE - /api/comments/:comment_id` `- command:
+
+    ```
+    curl -X DELETE http://localhost:3000/api/comments/3^
+    -H "Authorization: %TOKEN%"
+    ```
+
+    answer:
+
+    ```
+    {"message":"Comment deleted"}
+    ```
+
+-   `POST - /api/comments/:comment_id/like`- command:
+
+    ```
+    curl -X POST http://localhost:3000/api/comments/18/like ^
+    -H "Authorization: %TOKEN%" ^
+    -H "Content-Type: application/json" ^
+    -d "{\"type\":\"like\"}"
+    ```
+
+    answer:
+
+    ```
+    {"message":"Like added"}
+    ```
+
+-   `GET - /api/comments/:comment_id/like`- command:
+
+    ```
+    curl -X GET http://localhost:3000/api/comments/<comment_id>/like
+    ```
+
+    answer:
+
+    ```
+    [{"id":42,"author_id":59,"post_id":null,"comment_id":15,"type":"like"}]
+    ```
+
+-   `DELETE - /api/comments/:comment_id/like` - command:
+
+    ```
+      curl -X DELETE http://localhost:3000/api/comments/<comment_id>/like ^
+      -H "Authorization: %TOKEN%"
+    ```
+
+    answer:
+
+    ```
+      {"message":"Like removed"}
+    ```
+
+**Favorites module:**
+
+-   `POST - /api/posts/:post_id/favorite`- command:
+
+    ```
+    curl -X POST http://localhost:3000/api/posts/19/favorite ^
+    -H "Authorization: %TOKEN%" ^
+    -H "Content-Type: application/json"
+    ```
+
+    answer:
+
+    ```
+    {"message":"Favorited"}
+    ```
+
+-   `GET - /api/users/me/favorites`- command:
+
+    ```
+    curl -X GET "http://localhost:3000/api/users/me/favorites?page=1&limit=20" ^
+     -H "Authorization: %TOKEN%"
+
+    ```
+
+    answer:
+
+    ```
+    [{"id":19,"author_id":59,"title":..]
+    ```
+
+-   `DELETE - /api/posts/19/favorite`- command:
+
+    ```
+    curl -X DELETE http://localhost:3000/api/posts/19/favorite ^
+    -H "Authorization: %TOKEN%"
+
+    ```
+
+    answer:
+
+    ```
+    {"message":"Unfavorited"}
+    ```
+
+сортировка
+пагинация
 
 ## Next Steps / TODO
 

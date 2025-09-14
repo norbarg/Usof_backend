@@ -170,6 +170,11 @@ export const PostController = {
         const post = await Posts.findById(id);
         if (!post) return res.status(404).json({ error: 'Post not found' });
 
+        if (post.status !== 'active') {
+            return res
+                .status(403)
+                .json({ error: 'Cannot react to inactive post' });
+        }
         // смотрим, есть ли уже реакция от этого пользователя на этот пост
         const [rows] = await pool.query(
             `SELECT id, type FROM likes 

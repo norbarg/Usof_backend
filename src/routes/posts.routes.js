@@ -3,6 +3,7 @@ import { PostController } from '../controllers/PostController.js';
 import { CommentController } from '../controllers/CommentController.js';
 import { authRequired } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
+import { FavoriteController } from '../controllers/FavoriteController.js';
 
 const r = Router();
 // public list
@@ -26,5 +27,8 @@ r.patch(
 r.patch('/:post_id', authRequired, PostController.update); //corrected
 r.delete('/:post_id', authRequired, PostController.remove); //corrected
 r.delete('/:post_id/like', authRequired, PostController.likeDelete); //corrected
+
+r.post('/:post_id/favorite', authRequired, FavoriteController.add);
+r.delete('/:post_id/favorite', authRequired, FavoriteController.remove);
 
 export default r;

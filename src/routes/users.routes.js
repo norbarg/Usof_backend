@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { UserController } from '../controllers/UserController.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
+import { FavoriteController } from '../controllers/FavoriteController.js';
 
 const r = Router();
 r.get('/', authRequired, requireRole('admin'), UserController.getAll); // admin only corrected
@@ -16,4 +17,7 @@ r.patch(
 ); //corrected
 r.patch('/:user_id', authRequired, UserController.update); //corrected
 r.delete('/:user_id', authRequired, UserController.remove); //corrected
+
+r.get('/me/favorites', authRequired, FavoriteController.listMine);
+
 export default r;
