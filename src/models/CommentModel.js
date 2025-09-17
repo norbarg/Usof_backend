@@ -45,5 +45,14 @@ export class CommentModel extends BaseModel {
         await this.query(`DELETE FROM comments WHERE id = :id`, { id });
         return true;
     }
+    async listByPostForViewer({ post_id, viewer_id }) {
+        return this.query(
+            `SELECT * FROM comments
+       WHERE post_id = :post_id
+         AND (status = 'active' OR (status = 'inactive' AND author_id = :viewer_id))
+       ORDER BY publish_date ASC`,
+            { post_id, viewer_id }
+        );
+    }
 }
 export const Comments = new CommentModel();

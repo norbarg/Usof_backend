@@ -1,6 +1,8 @@
 //controllers/UserController.js
 import { Users } from '../models/UserModel.js';
 import { hashPassword } from '../utils/password.js';
+import { Posts } from '../models/PostModel.js';
+
 const ALLOWED_ROLES = new Set(['user', 'admin']);
 
 export const UserController = {
@@ -95,5 +97,32 @@ export const UserController = {
         }
         await Users.deleteById(id);
         res.json({ message: 'User deleted' });
+    },
+    async listMyPosts(req, res) {
+        const {
+            page = 1,
+            limit = 10,
+            sortBy = 'likes',
+            category_id,
+            date_from,
+            date_to,
+            // status можно не передавать, чтобы видеть и active, и inactive
+        } = req.query;
+
+        const offset = (Math.max(1, +page) - 1) * +limit;
+
+        const posts = await Posts.list({
+            limit: +limit,
+            offset,
+            sortBy,
+            category_id,
+            date_from,
+            date_to,
+            author_id: req.user.id, // показываем только свои
+            viewer_id: req.user.id, // и включаем свои inactive
+            // status не задаём — это важно
+        });
+
+        res.json(posts);
     },
 };

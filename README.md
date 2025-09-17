@@ -55,18 +55,59 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
 
 `DELETE /api/users/:user_id`
 
--   Posts: `GET /api/posts?sortBy=likes|date&category_id=&date_from=&date_to=&page=&limit=`, `GET /api/posts/:post_id`,
-    `POST /api/posts`, `PATCH /api/posts/:post_id`, `DELETE /api/posts/:post_id`
-    `GET /api/posts/:post_id/comments`, `POST /api/posts/:post_id/comments`,
-    `GET /api/posts/:post_id/like`, `POST /api/posts/:post_id/like`, `DELETE /api/posts/:post_id/like`
--   Categories: `GET /api/categories`, `GET /api/categories/:category_id`, `GET /api/categories/:category_id/posts`,
-    `POST /api/categories` (admin), `PATCH /api/categories/:category_id` (admin), `DELETE /api/categories/:category_id` (admin)
--   Comments: `GET /api/comments/:comment_id`, `PATCH /api/comments/:comment_id`, `DELETE /api/comments/:comment_id`,
-    `GET /api/comments/:comment_id/like`, `POST /api/comments/:comment_id/like`, `DELETE /api/comments/:comment_id/like`
+-   Posts:
+
+`GET /api/posts?sortBy=likes|date&category_id=&date_from=&date_to=&page=&limit=`,
+
+`GET /api/posts/:post_id`,
+
+`POST /api/posts`,
+
+`PATCH /api/posts/:post_id`,
+
+`DELETE /api/posts/:post_id`,
+
+`GET /api/posts/:post_id/comments`,
+
+`POST /api/posts/:post_id/comments`,
+
+`GET /api/posts/:post_id/like`,
+
+`POST /api/posts/:post_id/like`,
+
+`DELETE /api/posts/:post_id/like`
+
+-   Categories:
+
+`GET /api/categories`,
+
+`GET /api/categories/:category_id`,
+
+`GET /api/categories/:category_id/posts`,
+
+`POST /api/categories` (admin),
+
+`PATCH /api/categories/:category_id` (admin),
+
+`DELETE /api/categories/:category_id` (admin)
+
+-   Comments:
+
+`GET /api/comments/:comment_id`,
+
+`PATCH /api/comments/:comment_id`,
+
+`DELETE /api/comments/:comment_id`,
+
+`GET /api/comments/:comment_id/like`,
+
+`POST /api/comments/:comment_id/like`,
+
+`DELETE /api/comments/:comment_id/like`
 
 ## How to check Endpoints
 
-**Authentication module:**
+# Authentication module:
 
 -   `POST - /api/auth/register` - command:
 
@@ -154,7 +195,7 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
 
     **or you can continue with terminal**
 
-**User module:**
+# User module:
 
 -   `GET - /api/users/:user_id ` - command:
 
@@ -169,17 +210,17 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     {"id":36,"login":"alice2","full_name":"Alice Two","email":"alice2@example.com", ...}
     ```
 
--   `GET - /api/users/:user_id` - command:
+-   `GET - /api/users/me/posts ` - command:
 
     ```
-    curl -X GET http://localhost:3000/api/users/36 ^
-    -H "Authorization: %TOKEN%"
+     curl -X GET "http://localhost:3000/api/users/me/posts?page=1&limit=10&sortBy=date" ^
+     -H "Authorization: %TOKEN%"
     ```
 
     answer:
 
     ```
-    {"id":36,"login":"alice2","full_name":"Alice Two","email":"alice2@example.com", ...}
+     [{"id":20,"author_id":44,"title":"fegegegergrger","content":[{"text":"Привет, мир!","type":"text"}],"publish_date":"2025-09-13T18:13:29.000Z","status":"active","updantent":[{"text":"Hello fted_at":"2025-09-13T18:22:45.000Z","like_count":"0"}...]
     ```
 
 -   `POST - /api/users ` - command:
@@ -239,7 +280,7 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     {"message":"User deleted"}
     ```
 
-**Post module:**
+# Post module:
 
 -   `POST - /api/posts` - command:
 
@@ -265,6 +306,21 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
 
     answer:
     all posts
+
+`GET - /api/posts/admin` - command (to see inactive posts for admin):
+
+    ```
+    curl -X GET "http://localhost:3000/api/posts/admin" ^
+
+    -H "Authorization: %TOKEN%"
+
+    curl -X GET "http://localhost:3000/api/posts/admin/4" ^
+    -H "Authorization: %TOKEN%"
+
+    ```
+
+    answer:
+    all posts or post_id =4
 
 -   `GET - /api/posts/:post_id` - command:
 
@@ -301,7 +357,7 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
 -   `PATCH /api/posts/:post_id` (change status and cat, only admin) - command:
 
     ```
-    curl -X PATCH http://localhost:3000/api/posts/19 ^
+    curl -X PATCH http://localhost:3000/api/posts/18 ^
     -H "Authorization: %TOKEN%" ^
     -H "Content-Type: application/json" ^
     -d "{\"status\":\"inactive\",\"categories\":[2,4]}"
@@ -325,10 +381,23 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     [{"id":1,"post_id":1,"author_id":3,"content":"Use lodash debounce or custom hook.","publish_date":"2025-09-08T19:10:01.000Z","status":"active"}]
     ```
 
+-   `GET - /api/posts/admin/:post_id/comments` - command (to see inactive comments for admin):
+
+    ```
+    curl -X GET "http://localhost:3000/api/posts/admin/5/comments" ^
+    -H "Authorization: %TOKEN%"
+    ```
+
+    answer:
+
+    ```
+    [{"id":5,"post_id":5,"author_id":3,"content":"Edge case: when low > high.","publish_date":"2025-09-08T19:10:01.000Z","status":"inactive"},{"id":15,"post_id":5,"author_id":59,"content":"hui v popu","publish_date":"2025-09-14T15:14:00.000Z","status":"active"},{"id":18,"post_id":5,"author_id":59,"content":"hihihi!","publish_date":"2025-09-14T15:50:56.000Z","status":"inactive"}]
+    ```
+
 -   `POST - /api/posts/:post_id/comments` - command:
 
     ```
-    curl -X POST http://localhost:3000/api/posts/19/comments ^
+    curl -X POST http://localhost:3000/api/posts/1/comments ^
     -H "Authorization: %TOKEN%" ^
     -H "Content-Type: application/json" ^
     -d "{\"content\":\"First comm\"}"
@@ -403,7 +472,7 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     {"message":"Like removed"}
     ```
 
-**Categories module:**
+# Categories module:
 
 -   `GET /api/categories` - command:
 
@@ -485,7 +554,7 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     [{"id":5,"author_id":2,"title":"Binary search edge cases","content":[{"type":"text","value":"Confused about indices"}],"publish_date":"2025-09-08T19:10:01.000Z","status":"active","updated_at":"2025-09-08T19:10:01.000Z"}]
     ```
 
-**Comments module:**
+# Comments module:
 
 -   `GET - /api/comments/:comment_id` - command:
 
@@ -567,7 +636,7 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
       {"message":"Like removed"}
     ```
 
-**Favorites module:**
+# Favorites module:
 
 -   `POST - /api/posts/:post_id/favorite`- command:
 
@@ -610,9 +679,6 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     ```
     {"message":"Unfavorited"}
     ```
-
-сортировка
-пагинация
 
 ## Next Steps / TODO
 

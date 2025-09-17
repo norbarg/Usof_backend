@@ -19,5 +19,6 @@ r.patch('/:user_id', authRequired, UserController.update); //corrected
 r.delete('/:user_id', authRequired, UserController.remove); //corrected
 
 r.get('/me/favorites', authRequired, FavoriteController.listMine);
+r.get('/me/posts', authRequired, UserController.listMyPosts);
 
 export default r;

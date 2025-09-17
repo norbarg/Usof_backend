@@ -27,14 +27,23 @@ export class FavoriteModel extends BaseModel {
         return true;
     }
 
-    async listByUser({ user_id, limit = 20, offset = 0 }) {
+    async listByUser({ user_id, limit = 20, offset = 0, sortBy = 'date' }) {
+        const order =
+            sortBy === 'likes'
+                ? 'COALESCE(lc.like_count,0) DESC'
+                : 'p.publish_date DESC';
+
         return this.query(
-            `SELECT p.*
-         FROM favorites f
-         JOIN posts p ON p.id = f.post_id
-        WHERE f.user_id = :user_id
-        ORDER BY p.publish_date DESC
-        LIMIT :limit OFFSET :offset`,
+            `SELECT p.*, COALESCE(lc.like_count,0) AS like_count
+       FROM favorites f
+       JOIN posts p ON p.id = f.post_id
+       LEFT JOIN (
+         SELECT post_id, SUM(CASE WHEN type='like' THEN 1 ELSE -1 END) AS like_count
+         FROM likes WHERE comment_id IS NULL GROUP BY post_id
+       ) lc ON lc.post_id = p.id
+      WHERE f.user_id = :user_id
+      ORDER BY ${order}
+      LIMIT :limit OFFSET :offset`,
             { user_id, limit: +limit, offset: +offset }
         );
     }

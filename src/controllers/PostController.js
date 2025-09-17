@@ -75,58 +75,46 @@ export const PostController = {
         const isAdmin = req.user.role === 'admin';
         const isAuthor = req.user.id === post.author_id;
 
-        if (isAuthor || isAdmin) {
-            // Если админ и автор — разрешаем редактировать как автору (title/content/categories).
-            // Если админ не автор — разрешаем статус + категории.
-            if (isAuthor) {
-                const data = {};
-                if ('title' in req.body) data.title = req.body.title;
-                if ('content' in req.body) data.content = req.body.content;
-                if (Object.keys(data).length) await Posts.updateById(id, data);
+        if (!isAdmin && !isAuthor) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
 
-                if (Array.isArray(req.body.categories)) {
-                    await pool.query(
-                        `DELETE FROM post_categories WHERE post_id = :id`,
-                        { id }
-                    );
-                    if (req.body.categories.length) {
-                        const values = req.body.categories
-                            .map((cid) => `(${id}, ${+cid})`)
-                            .join(',');
-                        await pool.query(
-                            `INSERT IGNORE INTO post_categories (post_id, category_id) VALUES ${values}`
-                        );
-                    }
-                }
-                return res.json(await Posts.findById(id));
-            } else {
-                // Админ, но НЕ автор: только статус + категории
-                const data = {};
-                if ('status' in req.body) data.status = req.body.status;
-                if (Object.keys(data).length) await Posts.updateById(id, data);
+        const data = {};
 
-                if (Array.isArray(req.body.categories)) {
-                    await pool.query(
-                        `DELETE FROM post_categories WHERE post_id = :id`,
-                        { id }
-                    );
-                    if (req.body.categories.length) {
-                        const values = req.body.categories
-                            .map((cid) => `(${id}, ${+cid})`)
-                            .join(',');
-                        await pool.query(
-                            `INSERT IGNORE INTO post_categories (post_id, category_id) VALUES ${values}`
-                        );
-                    }
-                }
-                return res.json(await Posts.findById(id));
+        // права админа — можно менять статус
+        if (isAdmin && 'status' in req.body) {
+            data.status = req.body.status; // при желании тут можно валидировать: ['active','inactive']
+        }
+
+        // права автора — можно менять title/content
+        if (isAuthor) {
+            if ('title' in req.body) data.title = req.body.title;
+            if ('content' in req.body) data.content = req.body.content;
+        }
+
+        // применяем апдейт полей, если есть что обновлять
+        if (Object.keys(data).length) {
+            await Posts.updateById(id, data);
+        }
+
+        // категории — можно обоим (админу и автору)
+        if (Array.isArray(req.body.categories)) {
+            await pool.query(
+                `DELETE FROM post_categories WHERE post_id = :id`,
+                { id }
+            );
+            if (req.body.categories.length) {
+                const values = req.body.categories
+                    .map((cid) => `(${id}, ${+cid})`)
+                    .join(',');
+                await pool.query(
+                    `INSERT IGNORE INTO post_categories (post_id, category_id) VALUES ${values}`
+                );
             }
         }
 
-        // Не админ и не автор
-        return res.status(403).json({ error: 'Forbidden' });
+        return res.json(await Posts.findById(id));
     },
-
     async remove(req, res) {
         const id = +req.params.post_id;
         const post = await Posts.findById(id);
@@ -154,6 +142,16 @@ export const PostController = {
         });
         res.json(comments);
     },
+    async listCommentsAdmin(req, res) {
+        const id = +req.params.post_id;
+        // можно сразу отдать, либо сначала проверить, что пост существует
+        const comments = await Comments.listByPost({
+            post_id: id,
+            include_inactive: true,
+        });
+        res.json(comments);
+    },
+
     async likeList(req, res) {
         const id = +req.params.post_id;
         const likes = await Likes.listForPost(id);
@@ -242,39 +240,70 @@ export const PostController = {
         // фронт сам вставит блок { type: 'image', url } в content и сделает PATCH /posts/:id
         return res.json({ url });
     },
+    async listAllAdmin(req, res) {
+        const {
+            page = 1,
+            limit = 10,
+            sortBy = 'likes',
+            category_id,
+            status,
+            date_from,
+            date_to,
+        } = req.query;
+        const offset = (Math.max(1, +page) - 1) * +limit;
+        const posts = await Posts.list({
+            limit,
+            offset,
+            sortBy,
+            category_id,
+            status, // можно фильтровать по статусу (active/inactive)
+        });
+        res.json(posts);
+    },
+
+    async getByIdAdmin(req, res) {
+        const id = +req.params.post_id;
+        const post = await Posts.findById(id);
+        if (!post) return res.status(404).json({ error: 'Post not found' });
+        // админ всегда видит
+        res.json(post);
+    },
+    async listCommentsForViewer(req, res) {
+        const post_id = +req.params.post_id;
+        const viewer_id = req.user.id;
+
+        const comments = await Comments.listByPostForViewer({
+            post_id,
+            viewer_id,
+        });
+        res.json(comments);
+    },
 };
 
 async function updateUserRating(user_id) {
-    // Сумма по постам
-    const [postRows] = await pool.query(
-        `SELECT COALESCE(SUM(CASE WHEN l.type='like' THEN 1 ELSE -1 END),0) AS s
-     FROM posts p LEFT JOIN likes l ON l.post_id = p.id
+    const [postSum] = await pool.query(
+        `SELECT COALESCE(SUM(CASE 
+        WHEN l.type='like' THEN 1 
+        WHEN l.type='dislike' THEN -1 
+        ELSE 0 END), 0) AS s
+     FROM posts p
+     INNER JOIN likes l ON l.post_id = p.id
      WHERE p.author_id = :user_id`,
         { user_id }
     );
 
-    // Сумма по комментариям
-    const [commentRows] = await pool.query(
-        `SELECT COALESCE(SUM(CASE WHEN l.type='like' THEN 1 ELSE -1 END),0) AS s
-     FROM comments c LEFT JOIN likes l ON l.comment_id = c.id
+    const [commentSum] = await pool.query(
+        `SELECT COALESCE(SUM(CASE 
+        WHEN l.type='like' THEN 1 
+        WHEN l.type='dislike' THEN -1 
+        ELSE 0 END), 0) AS s
+     FROM comments c
+     INNER JOIN likes l ON l.comment_id = c.id
      WHERE c.author_id = :user_id`,
         { user_id }
     );
 
-    // Жёстко приводим к числу (на случай строк)
-    const postSum = Number(postRows?.[0]?.s ?? 0);
-    const commentSum = Number(commentRows?.[0]?.s ?? 0);
-    const rating = postSum + commentSum;
-
-    // (временно) логнем в консоль — что реально пишем
-    console.log('updateUserRating:', {
-        user_id,
-        postSum,
-        commentSum,
-        rating,
-        types: { post: typeof postSum, comment: typeof commentSum },
-    });
-
+    const rating = Number(postSum[0]?.s ?? 0) + Number(commentSum[0]?.s ?? 0);
     await pool.query(`UPDATE users SET rating = :rating WHERE id = :user_id`, {
         rating,
         user_id,

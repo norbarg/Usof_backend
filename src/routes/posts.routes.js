@@ -1,11 +1,32 @@
 import { Router } from 'express';
 import { PostController } from '../controllers/PostController.js';
 import { CommentController } from '../controllers/CommentController.js';
-import { authRequired } from '../middleware/auth.js';
+import { authRequired, requireRole } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 import { FavoriteController } from '../controllers/FavoriteController.js';
 
 const r = Router();
+
+// админские эндпоинты
+r.get(
+    '/admin',
+    authRequired,
+    requireRole('admin'),
+    PostController.listAllAdmin
+);
+r.get(
+    '/admin/:post_id',
+    authRequired,
+    requireRole('admin'),
+    PostController.getByIdAdmin
+);
+r.get(
+    '/admin/:post_id/comments',
+    authRequired,
+    requireRole('admin'),
+    PostController.listCommentsAdmin
+);
+
 // public list
 r.get('/', PostController.list); //corrected
 r.get('/:post_id', PostController.getById); //corrected
@@ -30,5 +51,11 @@ r.delete('/:post_id/like', authRequired, PostController.likeDelete); //corrected
 
 r.post('/:post_id/favorite', authRequired, FavoriteController.add);
 r.delete('/:post_id/favorite', authRequired, FavoriteController.remove);
+// только для авторизованных: активные + свои неактивные
+r.get(
+    '/:post_id/comments/me',
+    authRequired,
+    PostController.listCommentsForViewer
+);
 
 export default r;

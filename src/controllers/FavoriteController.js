@@ -30,12 +30,13 @@ export const FavoriteController = {
 
     // GET /api/users/me/favorites  (или /api/users/:user_id/favorites при желании)
     async listMine(req, res) {
-        const { page = 1, limit = 20 } = req.query;
+        const { page = 1, limit = 20, sortBy = 'date' } = req.query;
         const offset = (Math.max(1, +page) - 1) * +limit;
         const rows = await Favorites.listByUser({
             user_id: req.user.id,
             limit,
             offset,
+            sortBy,
         });
         res.json(rows);
     },
