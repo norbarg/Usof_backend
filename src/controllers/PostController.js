@@ -249,6 +249,7 @@ export const PostController = {
             status,
             date_from,
             date_to,
+            include_all = true,
         } = req.query;
         const offset = (Math.max(1, +page) - 1) * +limit;
         const posts = await Posts.list({
@@ -256,7 +257,10 @@ export const PostController = {
             offset,
             sortBy,
             category_id,
-            status, // можно фильтровать по статусу (active/inactive)
+            status, // можно фильтровать по статусу (?status=inactive)
+            date_from,
+            date_to,
+            include_all: true, // 🔴 ВАЖНО: добавь это
         });
         res.json(posts);
     },

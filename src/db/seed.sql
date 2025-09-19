@@ -6,11 +6,11 @@ USE usof_db;
 -- =========================
 INSERT INTO users (login, password_hash, full_name, email, email_verified, role)
 VALUES
-  ('admin', '$2a$10$Qv63E3c4L0Yv9n1a2sX/KehA2aSlj5tF1IxF6e0oZgMyV8U9gqZwy', 'Admin User', 'admin@example.com', 1, 'admin'),
-  ('alice', '$2a$10$Qv63E3c4L0Yv9n1a2sX/KehA2aSlj5tF1IxF6e0oZgMyV8U9gqZwy', 'Alice Johnson', 'alice@example.com', 1, 'user'),
-  ('bob',   '$2a$10$Qv63E3c4L0Yv9n1a2sX/KehA2aSlj5tF1IxF6e0oZgMyV8U9gqZwy', 'Bob Smith',    'bob@example.com',   1, 'user'),
-  ('carol', '$2a$10$Qv63E3c4L0Yv9n1a2sX/KehA2aSlj5tF1IxF6e0oZgMyV8U9gqZwy', 'Carol White',  'carol@example.com', 1, 'user'),
-  ('dave',  '$2a$10$Qv63E3c4L0Yv9n1a2sX/KehA2aSlj5tF1IxF6e0oZgMyV8U9gqZwy', 'Dave Lee',     'dave@example.com',  1, 'user')
+  ('admin', '$2a$10$xr383BbORypcICDTgw9vDu1vyKs1S.JUWwyhSe1HcOvfSWyMCGCtq', 'Admin User', 'admin@example.com', 1, 'admin'),
+  ('alice', '$2a$10$xr383BbORypcICDTgw9vDu1vyKs1S.JUWwyhSe1HcOvfSWyMCGCtq', 'Alice Johnson', 'alice@example.com', 1, 'user'),
+  ('bob',   '$2a$10$xr383BbORypcICDTgw9vDu1vyKs1S.JUWwyhSe1HcOvfSWyMCGCtq', 'Bob Smith',    'bob@example.com',   1, 'user'),
+  ('carol', '$2a$10$xr383BbORypcICDTgw9vDu1vyKs1S.JUWwyhSe1HcOvfSWyMCGCtq', 'Carol White',  'carol@example.com', 1, 'user'),
+  ('dave',  '$2a$10$xr383BbORypcICDTgw9vDu1vyKs1S.JUWwyhSe1HcOvfSWyMCGCtq', 'Dave Lee',     'dave@example.com',  1, 'user')
 ON DUPLICATE KEY UPDATE
   full_name = VALUES(full_name),
   email = VALUES(email),

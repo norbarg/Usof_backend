@@ -29,25 +29,34 @@ export class PostModel extends BaseModel {
         date_from,
         date_to,
         viewer_id,
+        include_all = false, // <-- НОВОЕ
     }) {
         // Build dynamic SQL
         let where = [];
         const params = { limit: +limit, offset: +offset };
 
-        if (status) {
-            where.push(`p.status = :status`);
-            params.status = status;
-        }
-        // ordinary viewers see only active, plus their own inactive
-        if (!status && !viewer_id) {
-            where.push(`p.status = 'active'`);
-        }
-        if (viewer_id) {
-            // show active posts OR viewer's own inactive
-            where.push(
-                `(p.status = 'active' OR (p.status = 'inactive' AND p.author_id = :viewer_id))`
-            );
-            params.viewer_id = viewer_id;
+        if (include_all) {
+            // админский режим: по умолчанию без ограничений по статусу
+            // но если явно передали ?status=..., уважаем его
+            if (status) {
+                where.push(`p.status = :status`);
+                params.status = status;
+            }
+        } else {
+            if (status) {
+                // обычный режим: если статус задан — фильтруем по нему
+                where.push(`p.status = :status`);
+                params.status = status;
+            } else if (viewer_id) {
+                // обычный режим + viewer: активные ИЛИ свои неактивные
+                where.push(
+                    `(p.status = 'active' OR (p.status = 'inactive' AND p.author_id = :viewer_id))`
+                );
+                params.viewer_id = viewer_id;
+            } else {
+                // публичный режим без токена: только активные
+                where.push(`p.status = 'active'`);
+            }
         }
         if (author_id) {
             where.push(`p.author_id = :author_id`);

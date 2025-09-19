@@ -4,10 +4,15 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
 
 ## Stack
 
--   Node.js, Express
--   MySQL (mysql2/promise, raw SQL)
--   JWT authentication
--   Multer for file uploads (avatars, post images)
+-   **Node.js, Express**
+-   **MySQL** (`mysql2/promise`, raw SQL)
+-   **JWT authentication** (`jsonwebtoken`)
+-   **bcryptjs** — хэширование паролей
+-   **dotenv** — работа с переменными окружения
+-   **express-async-errors** — обработка ошибок в async/await
+-   **morgan** — HTTP-логирование
+-   **multer** — загрузка файлов (аватары, изображения постов)
+-   **nodemailer** — отправка писем (подтверждение email, сброс пароля)
 
 ## Quick Start
 
@@ -123,7 +128,7 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
 
         curl -X POST http://localhost:3000/api/auth/login ^
          -H "Content-Type: application/json" ^
-         -d "{\"login\":\"alic3\",\"password\":\"password123\"}"
+         -d "{\"login\":\"alice3\",\"password\":\"password123\"}"
 
     answer:
 
@@ -196,6 +201,19 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     **or you can continue with terminal**
 
 # User module:
+
+-   `GET - /api/users ` - command:
+
+    ```
+    curl -X GET http://localhost:3000/api/users ^
+    -H "Authorization: %TOKEN%"
+    ```
+
+    answer:
+
+    ```
+    {"id":36,"login":"alice2","full_name":"Alice Two","email":"alice2@example.com", ...}
+    ```
 
 -   `GET - /api/users/:user_id ` - command:
 
@@ -307,16 +325,14 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     answer:
     all posts
 
-`GET - /api/posts/admin` - command (to see inactive posts for admin):
+-   `GET - /api/posts/admin` - command (to see inactive posts for admin):
 
     ```
     curl -X GET "http://localhost:3000/api/posts/admin" ^
-
     -H "Authorization: %TOKEN%"
 
     curl -X GET "http://localhost:3000/api/posts/admin/4" ^
     -H "Authorization: %TOKEN%"
-
     ```
 
     answer:
@@ -586,7 +602,7 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
 -   `DELETE - /api/comments/:comment_id` `- command:
 
     ```
-    curl -X DELETE http://localhost:3000/api/comments/3^
+    curl -X DELETE http://localhost:3000/api/comments/3 ^
     -H "Authorization: %TOKEN%"
     ```
 
@@ -679,10 +695,3 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
     ```
     {"message":"Unfavorited"}
     ```
-
-## Next Steps / TODO
-
--   Favorites & Subscriptions endpoints (data models already present)
--   Pagination metadata in list endpoints
--   Swagger/OpenAPI docs
--   Email delivery integration for verification and notifications (currently token is returned in responses for local testing)
