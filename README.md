@@ -188,15 +188,17 @@ Node.js + Express + MySQL API for a Q&A-like forum (StackOverflow-inspired), bui
 
     then go to postman and import the file. Open Variables in the collection:
 
-         *   baseUrl is already http://localhost:3000/api
+    -   baseUrl is already http://localhost:3000/api
 
-         *   in token insert raw JWT (without Bearer) from /auth/login
+    -   in token insert raw JWT (without Bearer) from /auth/login
 
-         *   in rand put big number
+    -   in rand put big number
 
-         *   in createdUserId put big number
+    -   in createdUserId put big number
 
-         *   For Upload Avatar: in Body → form-data → click on the empty value opposite avatar → select the file image.
+    -   and enter data in postId, activePostId, commentId, categoryId
+
+    -   For Upload Avatar: in Body → form-data → click on the empty value opposite avatar → select the file image.
 
     **or you can continue with terminal**
 

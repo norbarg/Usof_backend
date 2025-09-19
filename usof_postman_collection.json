@@ -272,31 +272,55 @@
             "name": "Posts",
             "item": [
                 {
-                    "name": "List Posts",
+                    "name": "List Posts (public)",
                     "request": {
                         "method": "GET",
-                        "header": [],
                         "url": {
                             "raw": "{{baseUrl}}/posts",
                             "host": ["{{baseUrl}}"],
                             "path": ["posts"]
-                        },
-                        "description": "Public: returns list of posts (active by default). Captures first id to {{postId}}."
+                        }
                     },
                     "event": [
                         {
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "pm.test(\"Status 200\", function () { pm.response.to.have.status(200); });",
-                                    "var j = [];",
-                                    "try { j = pm.response.json(); } catch (e) {}",
-                                    "pm.test(\"Array or empty array\", function () { pm.expect(Array.isArray(j)).to.be.true; });",
-                                    "if (Array.isArray(j) && j.length) {",
-                                    "  pm.collectionVariables.set('postId', String(j[0].id));",
-                                    "} else {",
-                                    "  pm.collectionVariables.unset('postId');",
-                                    "}"
+                                    "pm.test(\"200\",()=> pm.response.to.have.status(200));",
+                                    "let j=[]; try{j=pm.response.json();}catch(e){}; if(Array.isArray(j)&&j.length){ pm.collectionVariables.set('postId', String(j[0].id)); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List Posts (admin, include_all)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/admin?sortBy=date",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "admin"],
+                            "query": [{ "key": "sortBy", "value": "date" }]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/403\",()=> pm.expect([200,403]).to.include(pm.response.code));"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -307,33 +331,18 @@
                     "name": "Get Post by ID (postId)",
                     "request": {
                         "method": "GET",
-                        "header": [],
                         "url": {
                             "raw": "{{baseUrl}}/posts/{{postId}}",
                             "host": ["{{baseUrl}}"],
                             "path": ["posts", "{{postId}}"]
-                        },
-                        "description": "Reads post captured from list. If no posts in DB, this may 404."
+                        }
                     },
                     "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "if (!pm.collectionVariables.get('postId')) {",
-                                    "  console.warn('postId is empty — run \"List Posts\" first or ensure seed data exists.');",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
                         {
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "pm.test(\"OK or Not Found\", function () {",
-                                    "  pm.expect([200,404]).to.include(pm.response.code);",
-                                    "});"
+                                    "pm.test(\"200/404\",()=> pm.expect([200,404]).to.include(pm.response.code));"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -341,7 +350,7 @@
                     ]
                 },
                 {
-                    "name": "Create Post (auth user) — unique title",
+                    "name": "Create Post (auth) — unique title",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -352,8 +361,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"title\": \"Post {{rand}}\",\n  \"content\": [\n    {\"type\":\"text\",\"text\":\"Hello from {{rand}}\"}\n  ],\n  \"status\": \"active\"\n}",
-                            "options": { "raw": { "language": "json" } }
+                            "raw": "{\n  \"title\": \"Post {{rand}}\",\n  \"content\": [ {\"type\":\"text\",\"text\":\"Hello from {{rand}}\"} ],\n  \"categories\": [1,2]\n}"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/posts",
@@ -369,17 +377,14 @@
                                     "type": "string"
                                 }
                             ]
-                        },
-                        "description": "Creates a post for the current authenticated user. Saves new id into {{postId}}."
+                        }
                     },
                     "event": [
                         {
                             "listen": "prerequest",
                             "script": {
                                 "exec": [
-                                    "if (!pm.collectionVariables.get('rand')) {",
-                                    "  pm.collectionVariables.set('rand', Date.now().toString());",
-                                    "}"
+                                    "if(!pm.collectionVariables.get('rand')){pm.collectionVariables.set('rand', Date.now().toString());}"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -388,14 +393,8 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "pm.test(\"Created / Unauthorized / Forbidden\", function () {",
-                                    "  pm.expect([201,401,403,400]).to.include(pm.response.code);",
-                                    "});",
-                                    "if (pm.response.code === 201) {",
-                                    "  var j = pm.response.json();",
-                                    "  pm.expect(j).to.have.property('id');",
-                                    "  pm.collectionVariables.set('postId', String(j.id));",
-                                    "}"
+                                    "pm.test(\"201/401/400\",()=> pm.expect([201,401,400]).to.include(pm.response.code));",
+                                    "if(pm.response.code===201){ const j=pm.response.json(); pm.collectionVariables.set('postId', String(j.id)); }"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -403,203 +402,7 @@
                     ]
                 },
                 {
-                    "name": "Like Post (auth user)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{ \"type\": \"like\" }",
-                            "options": { "raw": { "language": "json" } }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/posts/{{postId}}/like",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["posts", "{{postId}}", "like"]
-                        },
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "description": "Sets/updates reaction to 'like' for the current user on {{postId}}."
-                    },
-                    "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "if (!pm.collectionVariables.get('postId')) {",
-                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"OK/Created/BadRequest/Unauthorized\", function () {",
-                                    "  pm.expect([200,201,400,401,403]).to.include(pm.response.code);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Get Post Comments (postId)",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/posts/{{postId}}/comments",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["posts", "{{postId}}", "comments"]
-                        },
-                        "description": "Gets comments for the captured postId. If none, returns empty array."
-                    },
-                    "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "if (!pm.collectionVariables.get('postId')) {",
-                                    "  console.warn('postId is empty — run \"List Posts\" first.');",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status 200 or 404\", function () {",
-                                    "  pm.expect([200,404]).to.include(pm.response.code);",
-                                    "});",
-                                    "if (pm.response.code === 200) {",
-                                    "  var j = pm.response.json();",
-                                    "  pm.test(\"Array\", function () { pm.expect(Array.isArray(j)).to.be.true; });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Add Comment to Post (auth user)",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"content\": \"Comment from {{rand}}\"\n}",
-                            "options": { "raw": { "language": "json" } }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/posts/{{postId}}/comments",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["posts", "{{postId}}", "comments"]
-                        },
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "description": "Creates a comment under {{postId}} for the current user."
-                    },
-                    "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "if (!pm.collectionVariables.get('postId')) {",
-                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
-                                    "}",
-                                    "if (!pm.collectionVariables.get('rand')) {",
-                                    "  pm.collectionVariables.set('rand', Date.now().toString());",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Created / Unauthorized / Forbidden / NotFound\", function () {",
-                                    "  pm.expect([201,401,403,404,400]).to.include(pm.response.code);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Get Post Categories (postId)",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/posts/{{postId}}/categories",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["posts", "{{postId}}", "categories"]
-                        },
-                        "description": "Returns categories bound to {{postId}}. Empty array if none."
-                    },
-                    "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "if (!pm.collectionVariables.get('postId')) {",
-                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status 200\", function () { pm.response.to.have.status(200); });",
-                                    "var j = [];",
-                                    "try { j = pm.response.json(); } catch(e) {}",
-                                    "pm.test(\"Array\", function () { pm.expect(Array.isArray(j)).to.be.true; });"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "Update Post (patch postId)",
+                    "name": "Patch Post (author/admin)",
                     "request": {
                         "method": "PATCH",
                         "header": [
@@ -610,10 +413,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"title\": \"Updated Title {{rand}}\",\n  \"content\": \"Updated content at {{rand}}\"\n}",
-                            "options": {
-                                "raw": { "language": "json" }
-                            }
+                            "raw": "{ \"title\": \"Updated {{rand}}\", \"content\": [ {\"type\":\"text\",\"text\":\"Updated at {{rand}}\"} ] }"
                         },
                         "url": {
                             "raw": "{{baseUrl}}/posts/{{postId}}",
@@ -629,34 +429,14 @@
                                     "type": "string"
                                 }
                             ]
-                        },
-                        "description": "PATCH post by ID. Author can update title/content/categories. Admin can update status/categories."
+                        }
                     },
                     "event": [
-                        {
-                            "listen": "prerequest",
-                            "script": {
-                                "exec": [
-                                    "if (!pm.collectionVariables.get('postId')) {",
-                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        },
                         {
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "pm.test(\"OK / Forbidden / Not Found\", function () {",
-                                    "  pm.expect([200,403,404]).to.include(pm.response.code);",
-                                    "});",
-                                    "if (pm.response.code === 200) {",
-                                    "  var j = pm.response.json();",
-                                    "  pm.expect(j).to.have.property('id');",
-                                    "  pm.expect(j).to.have.property('title');",
-                                    "  pm.expect(j).to.have.property('content');",
-                                    "}"
+                                    "pm.test(\"200/403/404\",()=> pm.expect([200,403,404]).to.include(pm.response.code));"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -664,25 +444,84 @@
                     ]
                 },
                 {
-                    "name": "List Post Likes (postId)",
+                    "name": "Admin: Change Post Status (+categories)",
                     "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/posts/{{postId}}/like",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["posts", "{{postId}}", "like"]
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"status\": \"inactive\", \"categories\": [2,4] }"
                         },
-                        "description": "Lists reactions for {{postId}} (like/dislike entries)."
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/403/404\",()=> pm.expect([200,403,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Like Post (auth) — on activePostId",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"type\": \"like\" }"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{activePostId}}/like",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{activePostId}}", "like"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Лайк по гарантированно активному посту (из публичного списка)."
                     },
                     "event": [
                         {
                             "listen": "prerequest",
                             "script": {
                                 "exec": [
-                                    "if (!pm.collectionVariables.get('postId')) {",
-                                    "  throw new Error('postId is empty — run \"Create Post\" or \"List Posts\" first.');",
-                                    "}"
+                                    "const pid=pm.collectionVariables.get('activePostId'); if(!pid||isNaN(Number(pid))){ throw new Error('activePostId is empty — run \"List Posts (public)\" first.'); }"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -691,10 +530,633 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "pm.test(\"Status 200\", function () { pm.response.to.have.status(200); });",
-                                    "var j = [];",
-                                    "try { j = pm.response.json(); } catch(e) {}",
-                                    "pm.test(\"Array\", function () { pm.expect(Array.isArray(j)).to.be.true; });"
+                                    "pm.test(\"200/201/400/401\",()=> pm.expect([200,201,400,401]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Like Post (auth) — on activePostId",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"type\": \"like\" }"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{activePostId}}/like",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{activePostId}}", "like"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "description": "Лайк по гарантированно активному посту."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/201/400/401\",()=> pm.expect([200,201,400,401]).to.include(pm.response.code));",
+                                    "pm.test('have activePostId (soft)', ()=> pm.expect(/^[0-9]+$/.test(pm.collectionVariables.get('activePostId')||'')).to.be.true);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Favorite Post (auth)",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}/favorite",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}", "favorite"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/201/401\",()=> pm.expect([200,201,401]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Unfavorite Post (auth)",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}/favorite",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}", "favorite"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/401\",()=> pm.expect([200,401]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete Post",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{postId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{postId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/403/404\",()=> pm.expect([200,403,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+
+        {
+            "name": "Comments",
+            "item": [
+                {
+                    "name": "List Post Comments (public) — activePostId",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{activePostId}}/comments",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{activePostId}}", "comments"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "const pid=pm.collectionVariables.get('activePostId'); if(!pid||isNaN(Number(pid))){ throw new Error('activePostId is empty — run \"List Posts (public)\" first.'); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/404\",()=> pm.expect([200,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List Post Comments (viewer) — includes my inactive (activePostId)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{activePostId}}/comments/me",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "posts",
+                                "{{activePostId}}",
+                                "comments",
+                                "me"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "const pid=pm.collectionVariables.get('activePostId'); if(!pid||isNaN(Number(pid))){ throw new Error('activePostId is empty — run \"List Posts (public)\" first.'); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/401\",()=> pm.expect([200,401]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Comment (auth) — on activePostId",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"content\": \"Comment {{rand}}\" }"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/posts/{{activePostId}}/comments",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["posts", "{{activePostId}}", "comments"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "if(!pm.collectionVariables.get('rand')){pm.collectionVariables.set('rand', Date.now().toString());}",
+                                    "const pid=pm.collectionVariables.get('activePostId'); if(!pid||isNaN(Number(pid))){ throw new Error('activePostId is empty — run \"List Posts (public)\" first.'); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"201/400/401/403/404\",()=> pm.expect([201,400,401,403,404]).to.include(pm.response.code));",
+                                    "if(pm.response.code===201){ const j=pm.response.json(); pm.collectionVariables.set('commentId', String(j.id)); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Comment by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/comments/{{commentId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["comments", "{{commentId}}"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/403/404\",()=> pm.expect([200,403,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Patch Comment (author/admin)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"content\": \"Updated {{rand}}\" }"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/comments/{{commentId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["comments", "{{commentId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/403/404\",()=> pm.expect([200,403,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Like Comment (auth)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"type\": \"like\" }"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/comments/{{commentId}}/like",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["comments", "{{commentId}}", "like"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/201/400/401/403/404\",()=> pm.expect([200,201,400,401,403,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "List Comment Likes",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/comments/{{commentId}}/like",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["comments", "{{commentId}}", "like"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200\",()=> pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete Comment",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "{{baseUrl}}/comments/{{commentId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["comments", "{{commentId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/403/404\",()=> pm.expect([200,403,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+
+        {
+            "name": "Categories",
+            "item": [
+                {
+                    "name": "List Categories (public)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/categories",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["categories"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200\",()=> pm.response.to.have.status(200));",
+                                    "const j=pm.response.json(); if(Array.isArray(j)&&j.length){ pm.collectionVariables.set('categoryId', String(j[0].id)); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Category (admin)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"title\": \"Tech {{rand}}\", \"description\": \"Desc {{rand}}\" }"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/categories",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["categories"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"201/403/400\",()=> pm.expect([201,403,400]).to.include(pm.response.code));",
+                                    "if(pm.response.code===201){ const j=pm.response.json(); pm.collectionVariables.set('categoryId', String(j.id)); }"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Category by ID",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["categories", "{{categoryId}}"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/404\",()=> pm.expect([200,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Patch Category (admin)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"description\": \"Updated {{rand}}\" }"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["categories", "{{categoryId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/403/404\",()=> pm.expect([200,403,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete Category (admin)",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["categories", "{{categoryId}}"]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200/403/404\",()=> pm.expect([200,403,404]).to.include(pm.response.code));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Category Posts",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/categories/{{categoryId}}/posts",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["categories", "{{categoryId}}", "posts"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"200\",()=> pm.response.to.have.status(200));"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -704,11 +1166,15 @@
             ]
         }
     ],
+
     "variable": [
         { "key": "baseUrl", "value": "http://localhost:3000/api" },
         { "key": "token", "value": "" },
         { "key": "rand", "value": "1757685470990" },
         { "key": "createdUserId", "value": "52" },
-        { "key": "postId", "value": "1" }
+        { "key": "postId", "value": "1" },
+        { "key": "activePostId", "value": "" },
+        { "key": "commentId", "value": "" },
+        { "key": "categoryId", "value": "" }
     ]
 }
