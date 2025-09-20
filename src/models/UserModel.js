@@ -1,4 +1,3 @@
-//models/UserModel.js
 import { BaseModel } from './BaseModel.js';
 
 export class UserModel extends BaseModel {

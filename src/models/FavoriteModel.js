@@ -6,12 +6,10 @@ export class FavoriteModel extends BaseModel {
     }
 
     async add({ user_id, post_id }) {
-        // первичный ключ (user_id, post_id) — дубликаты не вставятся
         await this.query(
             `INSERT IGNORE INTO favorites (user_id, post_id) VALUES (:user_id, :post_id)`,
             { user_id, post_id }
         );
-        // возвращаем признак — было ли добавлено
         const rows = await this.query(
             `SELECT 1 FROM favorites WHERE user_id = :user_id AND post_id = :post_id`,
             { user_id, post_id }

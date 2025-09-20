@@ -1,4 +1,3 @@
-//models/CategoryModel.js
 import { BaseModel } from './BaseModel.js';
 
 export class CategoryModel extends BaseModel {

@@ -7,7 +7,6 @@ import { FavoriteController } from '../controllers/FavoriteController.js';
 
 const r = Router();
 
-// админские эндпоинты
 r.get(
     '/admin',
     authRequired,
@@ -51,7 +50,6 @@ r.delete('/:post_id/like', authRequired, PostController.likeDelete); //corrected
 
 r.post('/:post_id/favorite', authRequired, FavoriteController.add);
 r.delete('/:post_id/favorite', authRequired, FavoriteController.remove);
-// только для авторизованных: активные + свои неактивные
 r.get(
     '/:post_id/comments/me',
     authRequired,

@@ -1,4 +1,3 @@
-//controllers/UserController.js
 import { Users } from '../models/UserModel.js';
 import { hashPassword } from '../utils/password.js';
 import { Posts } from '../models/PostModel.js';
@@ -26,7 +25,6 @@ export const UserController = {
             role = 'user',
         } = req.body;
 
-        // валидация обязательных полей
         if (
             !login ||
             !password ||
@@ -45,7 +43,6 @@ export const UserController = {
             return res.status(400).json({ error: 'Invalid role' });
         }
 
-        // проверка уникальности логина/почты
         const existingByLogin = await Users.findByLoginOrEmail(login);
         if (existingByLogin && existingByLogin.login === login) {
             return res.status(409).json({ error: 'Login already taken' });
@@ -55,7 +52,6 @@ export const UserController = {
             return res.status(409).json({ error: 'Email already taken' });
         }
 
-        // хэш пароля и создание
         const password_hash = await hashPassword(password);
         const user = await Users.create({
             login,
@@ -69,7 +65,6 @@ export const UserController = {
     },
     async update(req, res) {
         const id = +req.params.user_id;
-        // self or admin
         if (req.user.role !== 'admin' && req.user.id !== id) {
             return res.status(403).json({ error: 'Forbidden' });
         }
@@ -106,7 +101,6 @@ export const UserController = {
             category_id,
             date_from,
             date_to,
-            // status можно не передавать, чтобы видеть и active, и inactive
         } = req.query;
 
         const offset = (Math.max(1, +page) - 1) * +limit;
@@ -118,9 +112,8 @@ export const UserController = {
             category_id,
             date_from,
             date_to,
-            author_id: req.user.id, // показываем только свои
-            viewer_id: req.user.id, // и включаем свои inactive
-            // status не задаём — это важно
+            author_id: req.user.id,
+            viewer_id: req.user.id,
         });
 
         res.json(posts);

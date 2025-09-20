@@ -6,10 +6,9 @@ import { pool } from '../config/db.js';
 import { env } from '../config/env.js';
 import { sendEmail } from '../utils/mailer.js';
 
-// ---- helper: сохранить одноразовый verify-токен в БД
 async function insertVerifyToken(user_id) {
-    const token = crypto.randomBytes(32).toString('hex'); // не JWT, одноразовый
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 часа
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 ч
     await pool.query(
         `INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES (?, ?, ?)`,
         [user_id, token, expiresAt]
@@ -55,7 +54,6 @@ export const AuthController = {
             email,
             role: 'user',
         });
-        // внутри register после создания пользователя:
         const token = await insertVerifyToken(user.id);
         const link = `${
             env.API_URL
@@ -159,7 +157,6 @@ export const AuthController = {
             `INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (:uid, :token, :exp)`,
             { uid: user.id, token, exp: expires_at }
         );
-        // For local dev, return token in response
         return res.json({
             message: 'Password reset token generated',
             reset_token: token,

@@ -1,4 +1,3 @@
-// src/controllers/CommentController.js
 import { Comments } from '../models/CommentModel.js';
 import { Posts } from '../models/PostModel.js';
 import { Likes } from '../models/LikeModel.js';
@@ -119,7 +118,6 @@ export const CommentController = {
             if ('content' in req.body) data.content = req.body.content;
             if ('status' in req.body) data.status = req.body.status;
         } else if (isAdmin) {
-            // админ, но НЕ автор — может менять только статус
             if ('status' in req.body) data.status = req.body.status;
         }
 
@@ -145,7 +143,6 @@ export const CommentController = {
 };
 
 async function updateUserRating(user_id) {
-    // считаем рейтинг полностью на корректных джойнах
     const [postSum] = await pool.query(
         `SELECT COALESCE(SUM(CASE 
         WHEN l.type='like' THEN 1 
@@ -168,7 +165,6 @@ async function updateUserRating(user_id) {
         { user_id }
     );
 
-    // жёстко приводим к числу на всякий случай
     const ps = Number(postSum[0]?.s ?? 0);
     const cs = Number(commentSum[0]?.s ?? 0);
     const rating = ps + cs;

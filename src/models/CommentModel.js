@@ -1,4 +1,3 @@
-//models/CommentModel.js
 import { BaseModel } from './BaseModel.js';
 
 export class CommentModel extends BaseModel {

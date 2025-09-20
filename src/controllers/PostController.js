@@ -1,4 +1,3 @@
-//controllers/PostController.js
 import { Posts } from '../models/PostModel.js';
 import { Categories } from '../models/CategoryModel.js';
 import { Comments } from '../models/CommentModel.js';
@@ -34,7 +33,6 @@ export const PostController = {
         const id = +req.params.post_id;
         const post = await Posts.findById(id);
         if (!post) return res.status(404).json({ error: 'Post not found' });
-        // hide inactive for others
         if (
             post.status === 'inactive' &&
             (!req.user ||
@@ -56,7 +54,6 @@ export const PostController = {
             content,
             status: 'active',
         });
-        // attach categories
         if (Array.isArray(categories) && categories.length) {
             const values = categories
                 .map((cid) => `(${post.id}, ${+cid})`)
@@ -81,23 +78,19 @@ export const PostController = {
 
         const data = {};
 
-        // права админа — можно менять статус
         if (isAdmin && 'status' in req.body) {
-            data.status = req.body.status; // при желании тут можно валидировать: ['active','inactive']
+            data.status = req.body.status;
         }
 
-        // права автора — можно менять title/content
         if (isAuthor) {
             if ('title' in req.body) data.title = req.body.title;
             if ('content' in req.body) data.content = req.body.content;
         }
 
-        // применяем апдейт полей, если есть что обновлять
         if (Object.keys(data).length) {
             await Posts.updateById(id, data);
         }
 
-        // категории — можно обоим (админу и автору)
         if (Array.isArray(req.body.categories)) {
             await pool.query(
                 `DELETE FROM post_categories WHERE post_id = :id`,
@@ -144,7 +137,6 @@ export const PostController = {
     },
     async listCommentsAdmin(req, res) {
         const id = +req.params.post_id;
-        // можно сразу отдать, либо сначала проверить, что пост существует
         const comments = await Comments.listByPost({
             post_id: id,
             include_inactive: true,
@@ -164,7 +156,6 @@ export const PostController = {
             return res.status(400).json({ error: 'type must be like|dislike' });
         }
 
-        // ensure post exists
         const post = await Posts.findById(id);
         if (!post) return res.status(404).json({ error: 'Post not found' });
 
@@ -173,7 +164,6 @@ export const PostController = {
                 .status(403)
                 .json({ error: 'Cannot react to inactive post' });
         }
-        // смотрим, есть ли уже реакция от этого пользователя на этот пост
         const [rows] = await pool.query(
             `SELECT id, type FROM likes 
      WHERE author_id = :aid AND post_id = :pid AND comment_id IS NULL 
@@ -183,7 +173,6 @@ export const PostController = {
         const existing = rows[0];
 
         if (!existing) {
-            // не было — вставляем новую реакцию
             await pool.query(
                 `INSERT INTO likes (author_id, post_id, type) 
        VALUES (:aid, :pid, :type)`,
@@ -196,14 +185,12 @@ export const PostController = {
         }
 
         if (existing.type === type) {
-            // уже стоит та же реакция — ничего не делаем
-            await updateUserRating(post.author_id); // на всякий случай, можно опустить
+            await updateUserRating(post.author_id);
             return res
                 .status(200)
                 .json({ message: 'Reaction unchanged', post_id: id, type });
         }
 
-        // реакция другая — переключаем
         await pool.query(`UPDATE likes SET type = :type WHERE id = :id`, {
             type,
             id: existing.id,
@@ -226,7 +213,6 @@ export const PostController = {
         const post = await Posts.findById(id);
         if (!post) return res.status(404).json({ error: 'Post not found' });
 
-        // только автор поста или админ
         const isAuthor = req.user.id === post.author_id;
         const isAdmin = req.user.role === 'admin';
         if (!isAuthor && !isAdmin)
@@ -235,9 +221,7 @@ export const PostController = {
         if (!req.file)
             return res.status(400).json({ error: 'No file uploaded' });
 
-        const url = `/${req.file.path}`.replace(/\\/g, '/'); // Windows-safe
-        // ничего в БД сейчас не трогаем — просто отдаем URL,
-        // фронт сам вставит блок { type: 'image', url } в content и сделает PATCH /posts/:id
+        const url = `/${req.file.path}`.replace(/\\/g, '/');
         return res.json({ url });
     },
     async listAllAdmin(req, res) {
@@ -257,10 +241,10 @@ export const PostController = {
             offset,
             sortBy,
             category_id,
-            status, // можно фильтровать по статусу (?status=inactive)
+            status,
             date_from,
             date_to,
-            include_all: true, // 🔴 ВАЖНО: добавь это
+            include_all: true,
         });
         res.json(posts);
     },
@@ -269,7 +253,6 @@ export const PostController = {
         const id = +req.params.post_id;
         const post = await Posts.findById(id);
         if (!post) return res.status(404).json({ error: 'Post not found' });
-        // админ всегда видит
         res.json(post);
     },
     async listCommentsForViewer(req, res) {

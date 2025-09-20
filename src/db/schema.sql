@@ -70,7 +70,6 @@ CREATE TABLE IF NOT EXISTS likes (
     (post_id IS NOT NULL AND comment_id IS NULL) OR
     (post_id IS NULL AND comment_id IS NOT NULL)
   ),
-   -- переноc уникальности внутрь таблицы (без IF NOT EXISTS)
   UNIQUE KEY ux_like_post    (author_id, post_id),
   UNIQUE KEY ux_like_comment (author_id, comment_id)
 ) ENGINE=InnoDB;

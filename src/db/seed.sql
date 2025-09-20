@@ -16,7 +16,6 @@ ON DUPLICATE KEY UPDATE
   email = VALUES(email),
   role = VALUES(role);
 
--- привязываем переменные к id пользователей
 SET @u_admin = (SELECT id FROM users WHERE login='admin');
 SET @u_alice = (SELECT id FROM users WHERE login='alice');
 SET @u_bob   = (SELECT id FROM users WHERE login='bob');
@@ -35,7 +34,6 @@ INSERT INTO categories (title, description) VALUES
 ON DUPLICATE KEY UPDATE
   description = VALUES(description);
 
--- сохраним id категорий для связей
 SET @c_js   = (SELECT id FROM categories WHERE title='JavaScript');
 SET @c_db   = (SELECT id FROM categories WHERE title='Databases');
 SET @c_node = (SELECT id FROM categories WHERE title='Node.js');
@@ -45,9 +43,6 @@ SET @c_algo = (SELECT id FROM categories WHERE title='Algorithms');
 -- =========
 -- POSTS
 -- =========
--- Контент соблюдает формат: [{type:'text', text:'...'}, {type:'image', url:'...', alt:'...', caption:'...'}]
--- Вставляем по title, чтобы сид был идемпотентным (если title уникален у вас).
--- Если уникального индекса на title нет — можно заменить на MERGE-логику по EXISTS.
 
 -- Post 1 (alice)
 INSERT INTO posts (author_id, title, content, status, publish_date)
@@ -100,7 +95,6 @@ SELECT @u_alice,
        'active', NOW()
 WHERE NOT EXISTS (SELECT 1 FROM posts WHERE title='Binary search edge cases');
 
--- Сохраняем id постов
 SET @p1 = (SELECT id FROM posts WHERE title='How to debounce input in React?');
 SET @p2 = (SELECT id FROM posts WHERE title='Optimize MySQL query with JOINs');
 SET @p3 = (SELECT id FROM posts WHERE title='Node.js best practices');
@@ -120,7 +114,6 @@ INSERT IGNORE INTO post_categories (post_id, category_id) VALUES
 -- ==========
 -- COMMENTS
 -- ==========
--- часть активных, часть неактивных — пригодится для проверок видимости
 INSERT INTO comments (post_id, author_id, content, publish_date, status)
 SELECT @p1, @u_bob,   'Use lodash.debounce or a custom hook that wraps setTimeout/clearTimeout.', NOW(), 'active'
 WHERE NOT EXISTS (SELECT 1 FROM comments WHERE post_id=@p1 AND author_id=@u_bob AND content LIKE 'Use lodash.debounce%');
@@ -137,18 +130,15 @@ INSERT INTO comments (post_id, author_id, content, publish_date, status)
 SELECT @p3, @u_dave,  'Take a look at nodebestpractices repository for a great checklist.', NOW(), 'active'
 WHERE NOT EXISTS (SELECT 1 FROM comments WHERE post_id=@p3 AND author_id=@u_dave);
 
--- неактивный коммент к посту 5 (для проверки фильтрации)
 INSERT INTO comments (post_id, author_id, content, publish_date, status)
 SELECT @p5, @u_bob, 'Edge case: when low > high — make sure your loop terminates.', NOW(), 'inactive'
 WHERE NOT EXISTS (SELECT 1 FROM comments WHERE post_id=@p5 AND author_id=@u_bob AND status='inactive');
 
--- сохраним один id комментария для лайка
 SET @c_inactive = (SELECT id FROM comments WHERE post_id=@p5 AND author_id=@u_bob LIMIT 1);
 
 -- ======
 -- LIKES
 -- ======
--- лайки постов (comment_id IS NULL)
 INSERT IGNORE INTO likes (author_id, post_id, comment_id, type) VALUES
   (@u_bob,   @p1, NULL, 'like'),
   (@u_carol, @p1, NULL, 'like'),
@@ -156,7 +146,6 @@ INSERT IGNORE INTO likes (author_id, post_id, comment_id, type) VALUES
   (@u_alice, @p2, NULL, 'like'),
   (@u_alice, @p3, NULL, 'like');
 
--- пример лайка к комменту (для проверки суммарного рейтинга автора комментов)
 INSERT IGNORE INTO likes (author_id, post_id, comment_id, type)
 SELECT @u_alice, NULL, @c_inactive, 'like'
 WHERE @c_inactive IS NOT NULL;
